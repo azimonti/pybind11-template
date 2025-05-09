@@ -4,7 +4,7 @@
 /******************/
 /*   example.h    */
 /*  Version 1.0   */
-/*   2023/05/07   */
+/*   2025/05/07   */
 /******************/
 
 #include <iostream>
@@ -25,22 +25,25 @@ class Example
     std::string name_;
 };
 
-// Template class to write a vector of 4 elements
+// Template class to write an array and a vector of 4 elements
 template <typename T> class VectorWriter
 {
   public:
     VectorWriter();
+
+    // Methods for data_ (array)
+    std::vector<T> getArray() const; // Return as std::vector for convenience
+    void printArray() const;
+    void writeArrayToMemory(T* out_array, size_t size) const;
+
+    // Methods for data2_ (vector)
     std::vector<T> getVector() const;
     void printVector() const;
-    void writeToMemoryArray(T* out_array, size_t size) const; // Renamed method
+    void writeVectorToMemory(T* out_array, size_t size) const;
 
-  private:
-    std::vector<T> data_;
+  protected: // Changed from private to allow derived class access
+    T data_[3]{static_cast<T>(22), static_cast<T>(56), static_cast<T>(87)};
+    std::vector<T> data2_;
 };
-
-// Explicit template instantiations if needed by some compilers,
-// or can be handled in the .cpp file.
-// extern template class VectorWriter<float>;
-// extern template class VectorWriter<double>;
 
 #endif

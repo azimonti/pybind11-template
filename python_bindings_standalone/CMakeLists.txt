@@ -32,33 +32,36 @@ endif()
 if(DEFINED EXPECTED_PYTHON_EXE AND EXISTS "${EXPECTED_PYTHON_EXE}")
   # Hint for find_package
   set(Python_EXECUTABLE "${EXPECTED_PYTHON_EXE}" CACHE FILEPATH "Path to Python executable from venv")
-  message(STATUS "Hinting Python_EXECUTABLE to venv: ${Python_EXECUTABLE}")
 else()
   message(STATUS "Virtual environment Python not found or OS not handled, letting CMake search.")
 endif()
 
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
-
-message(STATUS "Using Python: ${Python_EXECUTABLE} version ${Python_VERSION}")
 find_package(pybind11 REQUIRED)
 
 # --- Build the static library ---
-add_library(bind_example STATIC
+add_library(${PROJECT_NAME} STATIC
     ../src/example.cpp
     ../src/example.h
 )
-target_include_directories(bind_example PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../src)
-target_compile_features(bind_example PUBLIC cxx_std_17)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
 # Add the pybind11 module
 # The module name 'example_module' must match PYBIND11_MODULE macro in pybind_example.cpp
 pybind11_add_module(example_module SHARED
     ../src/pybind_example.cpp
+    ../src/example_py.cpp
 )
 
 # Link the Python module against the static library
-target_link_libraries(example_module PRIVATE bind_example)
+target_link_libraries(example_module PRIVATE ${PROJECT_NAME})
 
 # add the C++ binary
-add_executable(main ../src/main.cpp)
-target_link_libraries(main PRIVATE bind_example)
+add_executable(${PROJECT_NAME}_main ../src/main.cpp)
+target_link_libraries(${PROJECT_NAME}_main PRIVATE ${PROJECT_NAME})
+
+if(UNITYBUILD)
+  set_property( TARGET ${PROJECT_NAME}      PROPERTY UNITY_BUILD ON                     )
+  set_property( TARGET ${PROJECT_NAME}_main PROPERTY UNITY_BUILD ON                     )
+  set_property( TARGET example_module       PROPERTY UNITY_BUILD ON                     )
+endif()

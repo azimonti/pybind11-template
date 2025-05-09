@@ -4,7 +4,6 @@ project(bind_example)
 set (PROJECT_VERSION "1.0"    )
 project(${PROJECT_NAME} VERSION ${PROJECT_VERSION})
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../externals/ma-libs/cmake_modules")
-message(  "${CMAKE_SOURCE_DIR}/../external/ma-libs/cmake_modules")
 include( COMPILERCOMMON     )
 include( COMPILERCPP        )
 include( FindLIBS           )
@@ -34,14 +33,11 @@ endif()
 if(DEFINED EXPECTED_PYTHON_EXE AND EXISTS "${EXPECTED_PYTHON_EXE}")
   # Hint for find_package
   set(Python_EXECUTABLE "${EXPECTED_PYTHON_EXE}" CACHE FILEPATH "Path to Python executable from venv")
-  message(STATUS "Hinting Python_EXECUTABLE to venv: ${Python_EXECUTABLE}")
 else()
   message(STATUS "Virtual environment Python not found or OS not handled, letting CMake search.")
 endif()
 
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
-
-message(STATUS "Using Python: ${Python_EXECUTABLE} version ${Python_VERSION}")
 find_package(pybind11 REQUIRED)
 
 # --- Build the static library ---
@@ -56,6 +52,7 @@ target_compile_features(bind_example PUBLIC cxx_std_17)
 # The module name 'example_module' must match PYBIND11_MODULE macro in pybind_example.cpp
 pybind11_add_module(example_module SHARED
     ../src/pybind_example.cpp
+    ../src/example_py.cpp
 )
 
 # Link the Python module against the static library

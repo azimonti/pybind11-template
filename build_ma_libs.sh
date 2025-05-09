@@ -1,5 +1,20 @@
 #!/bin/bash
 
+# Default build type
+BUILD_TYPE="Release"
+
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -d|--debug) BUILD_TYPE="Debug"; shift ;;
+        -r|--release) BUILD_TYPE="Release"; shift ;;
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
+
+echo "Selected build type: ${BUILD_TYPE}"
+
 unameOut="$(uname -s)"
 case "${unameOut}" in
   Linux*)   MACHINE=linux;;
@@ -26,44 +41,35 @@ source "${MYVENV}/${SCRIPTDIR}/activate"
 
 cd externals/ma-libs
 # Compiling ma-libs. options are available at https://github.com/azimonti/ma-libs
-./cbuild.sh --build-type Debug
-./cbuild.sh --build-type Release
-mkdir -p build/python_bindings/Debug
-mkdir -p build/python_bindings/Release
-cd build/python_bindings
+./cbuild.sh --build-type "${BUILD_TYPE}"
+mkdir -p build/python_bindings/"${BUILD_TYPE}"
+cd build/python_bindings/"${BUILD_TYPE}"
 
-if [[ -z "${NPROC}" ]]; then (( NPROC = $(nproc) - 1 )); fi
+if [[ -z "${NPROC}" ]]; then
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    NPROC=$(sysctl -n hw.ncpu)
+  else
+    NPROC=$(nproc)
+  fi
+  (( NPROC = NPROC > 1 ? NPROC - 1 : 1 ))
+fi
 
 if [ "${MACHINE}" == "macos" ]; then
-  cd Debug
-  cmake ../../../../../python_bindings_ma_libs -DCMAKE_BUILD_TYPE="Debug"
-  cd ../Release
-  cmake ../../../../../python_bindings_ma_libs -DCMAKE_BUILD_TYPE="Release"
+  cmake ../../../../../python_bindings_ma_libs -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
 elif [ "${MACHINE}" == "linux" ]; then
-  cd Debug
-  cmake ../../../../../python_bindings_ma_libs -DCMAKE_BUILD_TYPE="Debug"
-  cd ../Release
-  cmake ../../../../../python_bindings_ma_libs -DCMAKE_BUILD_TYPE="Release"
+  cmake ../../../../../python_bindings_ma_libs -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
 else
   WINARCH="x64"
   if [[ $PROCESSOR_IDENTIFIER == *"ARM"* ]]; then WINARCH="ARM64"; fi
-  cd Debug
-  cmake -A "${WINARCH}" ../../../../../python_bindings_ma_libs -DCMAKE_BUILD_TYPE="Debug"
-  cd ../Release
-  cmake -A "${WINARCH}" ../../../../../python_bindings_ma_libs -DCMAKE_BUILD_TYPE="Release"
+  cmake -A "${WINARCH}" ../../../../../python_bindings_ma_libs -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
 fi
 
 
 if [ "${MACHINE}" == "cygwin" ] || [ "${MACHINE}" == "mingw" ]; then
-  cd ../Debug
-  CMAKE_BUILD_PARALLEL_LEVEL=3 cmake --build ./ --config "Debug"
-  cd ../Release
-  CMAKE_BUILD_PARALLEL_LEVEL=3 cmake --build ./ --config "Release"
+  CMAKE_BUILD_PARALLEL_LEVEL=3 cmake --build ./ --config "${BUILD_TYPE}"
 else
-  cd ../Debug
-  cmake --build ./ --config "Debug" -j "${NPROC}"
-  cd ../Release
-  cmake --build ./ --config "Release" -j "${NPROC}"
+  cmake --build ./ --config "${BUILD_TYPE}" -j "${NPROC}"
 fi
 
-cd ../..
+cd ../../.. # This should take us from externals/ma-libs/build/python_bindings/${BUILD_TYPE} to externals/ma-libs
+cd ../.. # This should take us from externals/ma-libs to the project root
